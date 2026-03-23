@@ -7,117 +7,105 @@ from sklearn.metrics.pairwise import cosine_similarity
 # ------------------ PAGE SETTINGS ------------------
 st.set_page_config(page_title="Netflix Dashboard", layout="wide")
 
-# ------------------ LOAD DATA ------------------
-@st.cache_data
-def load_data():
-    df = pd.read_csv("netflix_titles.csv")
+st.title("🎬 Netflix Interactive Analytics & Recommendation System")
+
+# ------------------ FILE UPLOAD ------------------
+st.sidebar.header("📁 Upload Dataset")
+
+uploaded_file = st.sidebar.file_uploader("Upload Netflix CSV File", type=["csv"])
+
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+
+    # Clean data
     df = df.dropna(subset=["title"])
     df["listed_in"] = df["listed_in"].fillna("")
     df["description"] = df["description"].fillna("")
     df["country"] = df["country"].fillna("Unknown")
-    return df
 
-df = load_data()
+    st.success("✅ File uploaded successfully!")
 
-# ------------------ TITLE ------------------
-st.title("🎬 Netflix Interactive Analytics & Recommendation System")
+    # ------------------ SIDEBAR FILTERS ------------------
+    st.sidebar.header("🔍 Filter Options")
 
-# ------------------ SIDEBAR ------------------
-st.sidebar.header("🔍 Filter Options")
+    all_genres = df['listed_in'].str.split(', ').explode().unique()
+    genre = st.sidebar.selectbox("Select Genre", ["All"] + sorted(all_genres))
 
-# Genre list
-all_genres = df['listed_in'].str.split(', ').explode().unique()
-genre = st.sidebar.selectbox("Select Genre", ["All"] + sorted(all_genres))
+    country = st.sidebar.selectbox("Select Country", ["All"] + sorted(df['country'].unique()))
+    type_filter = st.sidebar.selectbox("Type", ["All"] + list(df['type'].unique()))
 
-# Country list
-country = st.sidebar.selectbox("Select Country", ["All"] + sorted(df['country'].unique()))
+    filtered_df = df.copy()
 
-# Type filter
-type_filter = st.sidebar.selectbox("Type", ["All"] + list(df['type'].unique()))
+    if genre != "All":
+        filtered_df = filtered_df[filtered_df['listed_in'].str.contains(genre)]
 
-# Apply filters
-filtered_df = df.copy()
+    if country != "All":
+        filtered_df = filtered_df[filtered_df['country'] == country]
 
-if genre != "All":
-    filtered_df = filtered_df[filtered_df['listed_in'].str.contains(genre)]
+    if type_filter != "All":
+        filtered_df = filtered_df[filtered_df['type'] == type_filter]
 
-if country != "All":
-    filtered_df = filtered_df[filtered_df['country'] == country]
+    # ------------------ SEARCH ------------------
+    st.subheader("🔎 Search Movie / Show")
+    search_query = st.text_input("Enter movie or show name")
 
-if type_filter != "All":
-    filtered_df = filtered_df[filtered_df['type'] == type_filter]
+    if search_query:
+        search_result = df[df['title'].str.contains(search_query, case=False)]
+        st.write(search_result[['title', 'type', 'country', 'listed_in']])
 
-# ------------------ SEARCH ------------------
-st.subheader("🔎 Search Movie / Show")
-search_query = st.text_input("Enter movie or show name")
+    # ------------------ SHOW DATA ------------------
+    st.subheader("📋 Filtered Results")
+    st.dataframe(filtered_df[['title', 'type', 'country', 'listed_in']].head(50))
 
-if search_query:
-    search_result = df[df['title'].str.contains(search_query, case=False)]
-    st.write(search_result[['title', 'type', 'country', 'listed_in']])
+    # ------------------ VISUALIZATION ------------------
+    st.subheader("📊 Data Insights")
 
-# ------------------ SHOW DATA ------------------
-st.subheader("📋 Filtered Results")
-st.dataframe(filtered_df[['title', 'type', 'country', 'listed_in']].head(50))
+    col1, col2 = st.columns(2)
 
-# ------------------ VISUALIZATIONS ------------------
-st.subheader("📊 Data Insights")
+    with col1:
+        st.write("Top Genres")
+        genre_count = df['listed_in'].str.split(', ').explode().value_counts().head(10)
+        st.bar_chart(genre_count)
 
-col1, col2 = st.columns(2)
+    with col2:
+        st.write("Top Countries")
+        country_count = df['country'].value_counts().head(10)
+        st.bar_chart(country_count)
 
-# Top Genres
-with col1:
-    st.write("Top 10 Genres")
-    genre_count = df['listed_in'].str.split(', ').explode().value_counts().head(10)
-    st.bar_chart(genre_count)
+    # ------------------ RECOMMENDATION ------------------
+    st.subheader("🤖 Movie Recommendation System")
 
-# Top Countries
-with col2:
-    st.write("Top 10 Countries")
-    country_count = df['country'].value_counts().head(10)
-    st.bar_chart(country_count)
+    df['combined'] = df['listed_in'] + " " + df['description']
 
-# ------------------ RECOMMENDATION SYSTEM ------------------
-st.subheader("🤖 Movie Recommendation System")
+    cv = CountVectorizer(stop_words='english')
+    matrix = cv.fit_transform(df['combined'])
 
-# Combine features
-df['combined'] = df['listed_in'] + " " + df['description']
+    similarity = cosine_similarity(matrix)
 
-# Vectorization
-cv = CountVectorizer(stop_words='english')
-matrix = cv.fit_transform(df['combined'])
+    movie_list = df['title'].dropna().unique()
+    selected_movie = st.selectbox("Select a Movie", movie_list)
 
-# Similarity
-similarity = cosine_similarity(matrix)
+    def recommend(movie):
+        try:
+            index = df[df['title'] == movie].index[0]
+            distances = list(enumerate(similarity[index]))
+            movies = sorted(distances, key=lambda x: x[1], reverse=True)[1:6]
+            return [df.iloc[i[0]].title for i in movies]
+        except:
+            return []
 
-# Dropdown for movie selection
-movie_list = df['title'].dropna().unique()
-selected_movie = st.selectbox("Select a Movie", movie_list)
+    if st.button("Get Recommendations"):
+        results = recommend(selected_movie)
 
-# Recommendation function
-def recommend(movie):
-    try:
-        index = df[df['title'] == movie].index[0]
-        distances = list(enumerate(similarity[index]))
-        movies = sorted(distances, key=lambda x: x[1], reverse=True)[1:6]
+        if results:
+            st.write("### 🎯 Recommended Movies:")
+            for i, movie in enumerate(results, 1):
+                st.write(f"{i}. {movie}")
+        else:
+            st.write("No recommendations found.")
 
-        recommended_titles = []
-        for i in movies:
-            recommended_titles.append(df.iloc[i[0]].title)
-
-        return recommended_titles
-    except:
-        return []
-
-# Button
-if st.button("Get Recommendations"):
-    results = recommend(selected_movie)
-
-    if results:
-        st.write("### 🎯 Recommended Movies:")
-        for i, movie in enumerate(results, 1):
-            st.write(f"{i}. {movie}")
-    else:
-        st.write("No recommendations found.")
+else:
+    st.warning("⚠️ Please upload a CSV file to continue.")
 
 # ------------------ FOOTER ------------------
 st.markdown("---")
