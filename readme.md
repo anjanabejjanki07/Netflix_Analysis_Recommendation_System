@@ -6,7 +6,7 @@ An interactive web application that allows users to upload their own Netflix dat
 
 ## 🌐 Live Demo
 
-👉 Try the app here: **http://localhost:8501**
+👉 Try the app here: **https://byeypeitcublcagfsf8f4x.streamlit.app**
 
 ---
 
