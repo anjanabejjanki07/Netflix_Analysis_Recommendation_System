@@ -12,20 +12,44 @@ st.title("🎬 Netflix Interactive Analytics & Recommendation System")
 @st.cache_data
 def load_sample_data():
     data = {
-        "title": ["Stranger Things", "Money Heist", "Breaking Bad", "The Witcher", "Narcos"],
-        "type": ["TV Show", "TV Show", "TV Show", "TV Show", "TV Show"],
-        "country": ["USA", "Spain", "USA", "Poland", "USA"],
-        "listed_in": ["Drama, Sci-Fi", "Crime, Thriller", "Crime, Drama", "Fantasy, Action", "Crime, Drama"],
+        "title": [
+            "Stranger Things", "Money Heist", "Breaking Bad",
+            "The Witcher", "Narcos",
+            "Inception", "The Dark Knight", "3 Idiots",
+            "RRR", "Avengers: Endgame"
+        ],
+        "type": [
+            "TV Show", "TV Show", "TV Show",
+            "TV Show", "TV Show",
+            "Movie", "Movie", "Movie",
+            "Movie", "Movie"
+        ],
+        "country": [
+            "USA", "Spain", "USA",
+            "Poland", "USA",
+            "USA", "USA", "India",
+            "India", "USA"
+        ],
+        "listed_in": [
+            "Drama, Sci-Fi", "Crime, Thriller", "Crime, Drama",
+            "Fantasy, Action", "Crime, Drama",
+            "Sci-Fi, Thriller", "Action, Crime", "Comedy, Drama",
+            "Action, Drama", "Action, Sci-Fi"
+        ],
         "description": [
             "A group of kids face supernatural forces.",
             "A group plans the biggest heist in history.",
             "A chemistry teacher turns into a drug lord.",
             "A monster hunter struggles in a magical world.",
-            "Story of drug cartels in Colombia."
+            "Story of drug cartels in Colombia.",
+            "A thief enters dreams to steal secrets.",
+            "Batman fights crime in Gotham city.",
+            "Three friends navigate college life.",
+            "A revolutionary story set in India.",
+            "Superheroes unite to save the universe."
         ]
     }
     return pd.DataFrame(data)
-
 # ------------------ FILE UPLOAD ------------------
 st.sidebar.header("📁 Upload Dataset")
 uploaded_file = st.sidebar.file_uploader("Upload Netflix CSV File", type=["csv"])
