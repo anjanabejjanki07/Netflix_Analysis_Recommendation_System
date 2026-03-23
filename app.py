@@ -9,6 +9,7 @@ st.set_page_config(page_title="Netflix Dashboard", layout="wide")
 st.title("🎬 Netflix Interactive Analytics & Recommendation System")
 
 # ------------------ DEFAULT SAMPLE DATA ------------------
+@st.cache_data
 def load_sample_data():
     data = {
         "title": ["Stranger Things", "Money Heist", "Breaking Bad", "The Witcher", "Narcos"],
@@ -29,12 +30,13 @@ def load_sample_data():
 st.sidebar.header("📁 Upload Dataset")
 uploaded_file = st.sidebar.file_uploader("Upload Netflix CSV File", type=["csv"])
 
+# ------------------ DATA SELECTION ------------------
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     st.success("✅ Using uploaded dataset")
 else:
     df = load_sample_data()
-    st.info("ℹ️ Using sample dataset (Upload your own for full experience)")
+    st.info("ℹ️ Showing sample dataset (Upload your own for full analysis)")
 
 # ------------------ CLEAN DATA ------------------
 df = df.dropna(subset=["title"])
@@ -89,7 +91,7 @@ with col2:
     country_count = df['country'].value_counts()
     st.bar_chart(country_count)
 
-# ------------------ RECOMMENDATION ------------------
+# ------------------ RECOMMENDATION SYSTEM ------------------
 st.subheader("🤖 Movie Recommendation System")
 
 df['combined'] = df['listed_in'] + " " + df['description']
